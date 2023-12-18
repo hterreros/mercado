@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas del día</title>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock e Inventario</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.rawgit.com/euvl/vue-json-csv/master/dist/vue-json-csv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.rawgit.com/rainabba/jquery-table2excel/1.1.0/dist/jquery.table2excel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        label {
+            flex-basis: 100%;
+            margin-bottom: 10px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        @media only screen and (min-width: 600px) {
+            form {
+                flex-wrap: nowrap;
+            }
+
+            label {
+                flex-basis: calc(33.33% - 10px);
+            }
+
+            input, select, button {
+                flex-basis: calc(66.66% - 10px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Ventas del día</h1>
+	<div id="current_date">
+    <script>
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById("current_date").innerHTML = new Date().toLocaleDateString('es-ES', options);
+    </script>
+	</div>
+    
+    <form id="addItemForm">
+        <label for="productName">Nombre del Producto:</label>
+        <input type="text" id="productName" required>
+
+        <label for="quantity">Cantidad:</label>
+        <input type="number" id="quantity" required>
+
+        <label for="unit">Unidades:</label>
+        <select id="unit" required>
+            <option value="litros">Litros</option>
+            <option value="kilos">Kilos</option>
+            <option value="unidades">Unidades</option>
+            <option value="gramos">Gramos</option>
+            <option value="manojo">Manojo</option>
+        </select>
+
+        <label for="price">Precio:</label>
+        <input type="number" id="price" required>
+
+        <button type="button" onclick="addItem()">Agregar Producto</button>
+    </form>
+
+    <table id="inventoryTable">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Unidades</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody">
+            <!-- La tabla se llenará dinámicamente con JavaScript -->
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="1"></td>
+				<td colspan="1"></td>
+				<td colspan="1">Total:</td>
+                <td id="totalAmount">0</td>
+            </tr>
+        </tfoot>
+    </table>
+
+	<button id="downloadBtn">Descargar a Excel</button>
+    <script>
+        function addItem() {
+            var productName = document.getElementById('productName').value;
+            var quantity = parseFloat(document.getElementById('quantity').value);
+            var unit = document.getElementById('unit').value;
+            var price = parseFloat(document.getElementById('price').value);
+
+            if (productName && !isNaN(quantity) && unit && !isNaN(price)) {
+                var tableBody = document.getElementById('inventoryBody');
+                var newRow = tableBody.insertRow();
+
+                var cell1 = newRow.insertCell(0);
+                var cell2 = newRow.insertCell(1);
+                var cell3 = newRow.insertCell(2);
+                var cell4 = newRow.insertCell(3);
+                var cell5 = newRow.insertCell(4);
+
+                cell1.innerHTML = productName;
+                cell2.innerHTML = quantity;
+                cell3.innerHTML = unit;
+                cell4.innerHTML = price.toFixed(2);
+                cell5.innerHTML = '<button onclick="editItem(this)">Editar</button> <button onclick="deleteItem(this)">Eliminar</button>';
+                
+                // Limpiar los campos del formulario después de agregar un producto
+                document.getElementById('productName').value = '';
+                document.getElementById('quantity').value = '';
+                document.getElementById('unit').value = 'litros';
+                document.getElementById('price').value = '';
+
+                updateTotal();
+            } else {
+                alert('Por favor, complete todos los campos correctamente.');
+            }
+        }
+
+        function updateTotal() {
+            var totalQuantity = 0;
+            var totalPrice = 0;
+
+            var rows = document.querySelectorAll('#inventoryBody tr');
+
+            rows.forEach(function(row) {
+                var cells = row.cells;
+                totalQuantity += parseFloat(cells[1].innerHTML);
+                totalPrice += parseFloat(cells[3].innerHTML);
+            });
+
+            document.getElementById('totalAmount').innerHTML = totalPrice.toFixed(2);
+        }
+
+        function editItem(row) {
+            var cells = row.parentNode.parentNode.cells;
+            var productName = cells[0].innerHTML;
+            var quantity = parseFloat(cells[1].innerHTML);
+            var unit = cells[2].innerHTML;
+            var price = parseFloat(cells[3].innerHTML);
+
+            document.getElementById('productName').value = productName;
+            document.getElementById('quantity').value = quantity;
+            document.getElementById('unit').value = unit;
+            document.getElementById('price').value = price;
+
+            // Eliminar la fila al editar para evitar duplicados
+            row.parentNode.parentNode.remove();
+            updateTotal();
+        }
+
+        function deleteItem(row) {
+            row.parentNode.parentNode.remove();
+            updateTotal();
+        }
+		
+		$(document).ready(function() {
+            $("#downloadBtn").click(function() {
+                $("#inventoryTable").table2excel({
+                    exclude: ".noExl",
+                    name: "Inventario",
+                    filename: "inventario" // El nombre del archivo Excel
+                });
+            });
+        });
+    </script>
+</body>
+</html>
